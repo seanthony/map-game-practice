@@ -1,5 +1,7 @@
 body {
     font-family: Arial, Helvetica, sans-serif;
+    color: lightyellow;
+    background-color: black;
 }
 
 div.wrapper {
@@ -17,24 +19,46 @@ div.row {
 }
 
 div.square {
-    width: 100px;
-    height: 100px;
+    width: 40px;
+    height: 40px;
+    background-color: rgb(40, 40, 40);
 }
 
-div.light {
+div.path {
     background-color: lightgray;
 }
 
-div.dark {
-    background-color: darkgray;
+div.seen {
+    background-color: white;
 }
 
-div.red {
-    background-color: red;
+div.seen-low {
+    background-color: yellow;
+}
+
+div.seen-medium {
+    background-color: orange;
+}
+
+div.seen-high {
+    background-color: orangered;
+}
+
+
+div.tried {
+    background-color: darkred;
+}
+
+div.goal {
+    background-color: greenyellow;
 }
 
 img.game-piece {
-    width: 99px;
-    height: 99px;
+    width: 30px;
+    height: 30px;
     border-radius: 50%;
+}
+
+#container {
+    border: solid grey 5px;
 }
