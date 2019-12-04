@@ -1,7 +1,8 @@
 const HEIGHT = 15;
 const WIDTH = 20;
 var SCORE = 0;
-var LIVES = 10;
+var LIVES = 5;
+var GAMES = 5;
 // makes board
 var BOARD = [];
 for (let i = 0; i < HEIGHT; i++) {
@@ -14,7 +15,11 @@ for (let i = 0; i < HEIGHT; i++) {
             "tried": false,
             "death": false,
             "goal": false,
-            "touching": 0
+            "touching": 0,
+            "died": false,
+            "flashlight": false,
+            "litup": false,
+            "heart": false
         });
     }
     BOARD.push(row.slice());
@@ -38,8 +43,10 @@ function drawGameBoard(b) {
                     className = 'seen-high';
                 } else if (touching > 2) {
                     className = 'seen-medium';
-                } else if (touching > 0) {
+                } else if (touching > 1) {
                     className = 'seen-low';
+                } else if (touching > 0) {
+                    className = 'seen-very-low';
                 } else {
                     className = 'seen';
                 }
@@ -48,11 +55,23 @@ function drawGameBoard(b) {
             } else if (BOARD[i][j].goal) {
                 className = 'goal';
             }
+            if (BOARD[i][j].litup) {
+                className += ' bordered'
+            }
+
             html += `<div class="square ${className}">`;
             if (BOARD[i][j].death) {
                 html += '<img class="game-piece" src="./skull.png">'
             } else if (BOARD[i][j].player) {
                 html += '<img class="game-piece" src="./walk.gif">'
+            } else if (BOARD[i][j].heart && (BOARD[i][j].heart.seen || b)) {
+                html += '<p>❤️</p>'
+            } else if (BOARD[i][j].flashlight && (BOARD[i][j].flashlight.seen || b)) {
+                html += '<p>🔦</p>'
+            }
+
+            if (BOARD[i][j].died) {
+                html += '<p>💀</p>'
             }
             html += '</div>'
         }
@@ -65,6 +84,11 @@ function drawGameBoard(b) {
         hearts += '❤️';
     }
     document.getElementById('lives').innerText = hearts;
+    let skulls = '';
+    for (let s = 0; s < GAMES; s++) {
+        skulls += '💀';
+    }
+    document.getElementById('games').innerText = skulls;
 }
 
 
@@ -99,6 +123,29 @@ function movePlayer(event) {
             }
             BOARD[newI][newJ].seen = true;
 
+            if (BOARD[newI][newJ].heart && !BOARD[newI][newJ].heart.seen) {
+                BOARD[newI][newJ].heart.seen = true;
+                LIVES++;
+            }
+
+            if (BOARD[newI][newJ].flashlight && !BOARD[newI][newJ].flashlight.seen) {
+                BOARD[newI][newJ].flashlight.seen = true;
+                for (let x = -2; x <= 2; x++) {
+                    let xi = newI + x;
+                    if (xi >= 0 && xi < BOARD.length) {
+                        for (let y = -2; y <= 2; y++) {
+                            let yj = newJ + y;
+                            if (yj >= 0 && yj < BOARD[xi].length) {
+                                BOARD[xi][yj].litup = true;
+                                if (BOARD[xi][yj].path) {
+                                    BOARD[xi][yj].seen = true;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             if (newI == (HEIGHT - 1) && newJ == (WIDTH - 1)) {
                 gameWin();
                 return true;
@@ -107,8 +154,13 @@ function movePlayer(event) {
             BOARD[newI][newJ].tried = true;
             LIVES--;
             if (LIVES < 1) {
-                gameOver();
-                return true;
+                GAMES--;
+                if (GAMES < 1) {
+                    gameOver();
+                    return true;
+                }
+                LIVES = 5
+                resetGame(newI, newJ);
             }
         }
         drawGameBoard();
@@ -162,21 +214,38 @@ function loadBoard() {
         }
     }
 
+
+    let values = [];
     for (let i = 0; i < BOARD.length; i++) {
-        for (let j = 0; j < BOARD[0].length; j++) {
-            for (let n = -1; n <= 1; n++) {
-                let newI = i + n;
-                for (let m = -1; m <= 1; m++) {
-                    let newJ = j + m;
-                    if (newI >= 0 && newI < BOARD.length && newJ >= 0 && newJ < BOARD[newI].length) {
-                        if (!BOARD[newI][newJ].path) {
-                            BOARD[i][j].touching++;
+        for (let j = 0; j < BOARD[i].length; j++) {
+            if (BOARD[i][j].path) {
+                values.push({
+                    "i": i, "j": j
+                });
+                for (let n = -1; n <= 1; n++) {
+                    let newI = i + n;
+                    for (let m = -1; m <= 1; m++) {
+                        let newJ = j + m;
+                        if (newI >= 0 && newI < BOARD.length && newJ >= 0 && newJ < BOARD[newI].length) {
+                            if (!BOARD[newI][newJ].path) {
+                                BOARD[i][j].touching++;
+                            }
                         }
                     }
                 }
             }
         }
     }
+
+    let heartIndex = Math.floor(Math.random() * values.length);
+    let lightIndex = heartIndex;
+    while (lightIndex == heartIndex) {
+        lightIndex = Math.floor(Math.random() * values.length);
+    }
+    let pos = values[heartIndex];
+    BOARD[pos.i][pos.j].heart = { 'seen': false };
+    pos = values[lightIndex];
+    BOARD[pos.i][pos.j].flashlight = { 'seen': false };
 }
 
 
@@ -186,7 +255,6 @@ document.addEventListener("DOMContentLoaded", function () {
     BOARD[0][0].path = true;
 
     loadBoard();
-
     drawGameBoard();
 });
 
@@ -205,4 +273,37 @@ function gameWin() {
     drawGameBoard(true);
     document.removeEventListener('keydown', movePlayer, false);
     document.getElementById("message").innerText = "CONGRATULATIONS";
+}
+
+function resetGame(lastI, lastJ) {
+    BOARD[lastI][lastJ].died = true;
+    let path = [];
+    for (let i = 0; i < BOARD.length; i++) {
+        for (let j = 0; j < BOARD[i].length; j++) {
+            BOARD[i][j].seen = false;
+            BOARD[i][j].tried = false;
+            BOARD[i][j].player = false;
+            BOARD[i][j].heart = false;
+            BOARD[i][j].flashlight = false;
+            BOARD[i][j].seen = false;
+            BOARD[i][j].litup = false;
+            if (BOARD[i][j].path) {
+                path.push({ "i": i, "j": j });
+            }
+        }
+    }
+
+    BOARD[0][0].player = true;
+    BOARD[0][0].seen = true;
+    STEPS = 0;
+
+    let heartIndex = Math.floor(Math.random() * path.length);
+    let lightIndex = heartIndex;
+    while (lightIndex == heartIndex) {
+        lightIndex = Math.floor(Math.random() * path.length);
+    }
+    let pos = path[heartIndex];
+    BOARD[pos.i][pos.j].heart = { 'seen': false };
+    pos = path[lightIndex];
+    BOARD[pos.i][pos.j].flashlight = { 'seen': false };
 }
