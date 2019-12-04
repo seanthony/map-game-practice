@@ -1,0 +1,40 @@
+body {
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+div.wrapper {
+    width: 100%;
+    text-align: center;
+}
+
+div.game {
+    display: inline-block;
+    margin: 0 auto;
+}
+
+div.row {
+    display: flex;
+}
+
+div.square {
+    width: 100px;
+    height: 100px;
+}
+
+div.light {
+    background-color: lightgray;
+}
+
+div.dark {
+    background-color: darkgray;
+}
+
+div.red {
+    background-color: red;
+}
+
+img.game-piece {
+    width: 99px;
+    height: 99px;
+    border-radius: 50%;
+}
